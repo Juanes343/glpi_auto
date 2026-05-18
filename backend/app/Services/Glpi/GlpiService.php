@@ -383,6 +383,62 @@ class GlpiService
     }
 
     // -------------------------------------------------------------------------
+    // Autenticación con credenciales de usuario
+    // -------------------------------------------------------------------------
+
+    /**
+     * Valida usuario y contraseña contra GLPI usando Authorization Basic.
+     * Devuelve datos del usuario autenticado. Nunca expone el session_token de GLPI.
+     */
+    public function loginWithCredentials(string $username, string $password): array
+    {
+        $response = Http::withHeaders([
+            'App-Token'    => $this->appToken,
+            'Authorization' => 'Basic ' . base64_encode("{$username}:{$password}"),
+            'Content-Type' => 'application/json',
+        ])
+            ->timeout($this->timeout)
+            ->withOptions(['verify' => $this->sslVerify])
+            ->get("{$this->url}/initSession");
+
+        if ($response->failed()) {
+            throw new RuntimeException('Credenciales inválidas.');
+        }
+
+        $sessionToken = $response->json('session_token');
+
+        if (empty($sessionToken)) {
+            throw new RuntimeException('No se obtuvo session_token de GLPI.');
+        }
+
+        $name = $username;
+
+        try {
+            $fullSession = Http::withHeaders([
+                'App-Token'    => $this->appToken,
+                'Session-Token' => $sessionToken,
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout($this->timeout)
+                ->withOptions(['verify' => $this->sslVerify])
+                ->get("{$this->url}/getFullSession");
+
+            if ($fullSession->successful()) {
+                $name = $fullSession->json('session.glpifriendlyname') ?? $username;
+            }
+        } catch (\Throwable) {
+            // Silencioso; se usa el login como nombre
+        } finally {
+            $this->killSession($sessionToken);
+        }
+
+        return [
+            'glpi_login' => $username,
+            'name'       => $name,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------------------------
 

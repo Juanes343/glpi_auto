@@ -38,17 +38,32 @@ class GlpiMapper
     public static function newTicket(array $ticket): array
     {
         return [
-            'id'                  => $ticket['1'] ?? $ticket['id'] ?? null,
-            'title'               => $ticket['2'] ?? '',
+            'id'                  => $ticket['2'] ?? $ticket['id'] ?? null,
+            'title'               => $ticket['1'] ?? '',
             'entity'              => $ticket['80'] ?? '',
             'status'              => $ticket['12'] ?? '',
             'opening_date'        => $ticket['15'] ?? '',
             'last_update'         => $ticket['19'] ?? '',
             'priority'            => $ticket['3'] ?? '',
-            'requester'           => $ticket['4'] ?? '',
-            'assigned_technician' => $ticket['5'] ?? '',
+            'requester'           => self::resolveUserField($ticket['4'] ?? ''),
+            'assigned_technician' => self::resolveUserField($ticket['5'] ?? ''),
             'category'            => $ticket['7'] ?? '',
             'description'         => $ticket['21'] ?? '',
         ];
+    }
+
+    /**
+     * GLPI puede devolver el campo usuario como:
+     *   - string  (nombre expandido)
+     *   - integer (ID cuando expand_dropdowns no expande el campo)
+     *   - array   (múltiples usuarios)
+     */
+    private static function resolveUserField(mixed $value): string
+    {
+        if (is_array($value)) {
+            return implode(', ', array_filter(array_map('strval', $value)));
+        }
+
+        return (string) ($value ?? '');
     }
 }

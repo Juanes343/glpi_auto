@@ -50,7 +50,7 @@ export default function NewTickets() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">Casos nuevos</h1>
           {!loading && (
@@ -60,7 +60,7 @@ export default function NewTickets() {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={fetchTickets}
             disabled={loading}

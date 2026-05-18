@@ -315,7 +315,7 @@ class GlpiService
                     'sort'                    => '1',
                     'order'                   => 'DESC',
                     'range'                   => '0-999',
-                    'expand_dropdowns'        => 'true',
+                    'expand_dropdowns'        => 1,
                 ]);
 
             if ($response->failed()) {

@@ -1,0 +1,30 @@
+# ── Entornos ──────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Dependencias ──────────────────────────────────────────────
+node_modules/
+vendor/
+
+# ── Builds ────────────────────────────────────────────────────
+frontend/dist/
+frontend/build/
+backend/public/build/
+backend/public/hot/
+backend/public/storage
+
+# ── Laravel ───────────────────────────────────────────────────
+backend/storage/*.key
+backend/storage/pail/
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/auth.json
+
+# ── OS / Editores ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.sw?

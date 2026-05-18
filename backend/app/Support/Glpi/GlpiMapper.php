@@ -38,8 +38,8 @@ class GlpiMapper
     public static function newTicket(array $ticket): array
     {
         return [
-            'id'                  => $ticket['1'] ?? $ticket['id'] ?? null,
-            'title'               => $ticket['2'] ?? '',
+            'id'                  => $ticket['2'] ?? $ticket['id'] ?? null,
+            'title'               => $ticket['1'] ?? '',
             'entity'              => $ticket['80'] ?? '',
             'status'              => $ticket['12'] ?? '',
             'opening_date'        => $ticket['15'] ?? '',

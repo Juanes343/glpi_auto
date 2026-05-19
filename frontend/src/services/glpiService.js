@@ -15,6 +15,9 @@ export const createTicket = (data) =>
 export const getNewTickets = () =>
   client.get('/glpi/tickets/new').then((r) => r.data.data ?? { total: 0, tickets: [] });
 
+export const bulkReplyTickets = (ticketIds, content) =>
+  client.post('/glpi/tickets/bulk-reply', { ticket_ids: ticketIds, content }).then((r) => r.data);
+
 export const exportNewTicketsCsv = () =>
   client.get('/glpi/tickets/new/export', { responseType: 'blob' }).then((r) => {
     const contentDisposition = r.headers['content-disposition'] ?? '';

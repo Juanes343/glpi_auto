@@ -439,6 +439,62 @@ class GlpiService
     }
 
     // -------------------------------------------------------------------------
+    // Respuesta masiva (ITILFollowup)
+    // -------------------------------------------------------------------------
+
+    public function bulkAddFollowup(array $ticketIds, string $content): array
+    {
+        $sessionToken = $this->initSession();
+
+        try {
+            $input = array_values(array_map(fn ($id) => [
+                'itemtype'   => 'Ticket',
+                'items_id'   => (int) $id,
+                'content'    => $content,
+                'is_private' => 0,
+            ], $ticketIds));
+
+            // GLPI: un elemento → 201 + {id}, varios → 207 + [{id, message}]
+            $payload  = ['input' => count($input) === 1 ? $input[0] : $input];
+
+            $response = Http::withHeaders($this->headersWithSession($sessionToken))
+                ->timeout($this->timeout)
+                ->withOptions(['verify' => $this->sslVerify])
+                ->post("{$this->url}/ITILFollowup/", $payload);
+
+            if ($response->status() >= 400) {
+                throw new RuntimeException(
+                    "Error enviando seguimiento: {$response->status()} - " .
+                    $this->sanitizeError($response->body())
+                );
+            }
+
+            $body = $response->json();
+
+            // Respuesta single → {id: X}
+            if (isset($body['id'])) {
+                return [[
+                    'ticket_id' => $ticketIds[0],
+                    'ok'        => !empty($body['id']) && $body['id'] !== false,
+                    'message'   => '',
+                ]];
+            }
+
+            // Respuesta bulk → [{id: X, message: ""}, ...]
+            return array_map(function ($item, $idx) use ($ticketIds) {
+                return [
+                    'ticket_id' => $ticketIds[$idx] ?? null,
+                    'ok'        => !empty($item['id']) && $item['id'] !== false,
+                    'message'   => $item['message'] ?? '',
+                ];
+            }, $body, array_keys($body));
+
+        } finally {
+            $this->killSession($sessionToken);
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Helpers privados
     // -------------------------------------------------------------------------
 

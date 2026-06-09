@@ -315,7 +315,7 @@ class GlpiService
                     'sort'                    => '1',
                     'order'                   => 'DESC',
                     'range'                   => '0-999',
-                    'expand_dropdowns'        => 'true',
+                    'expand_dropdowns'        => 1,
                 ]);
 
             if ($response->failed()) {
@@ -380,6 +380,118 @@ class GlpiService
         fclose($handle);
 
         return $csv;
+    }
+
+    // -------------------------------------------------------------------------
+    // Autenticación con credenciales de usuario
+    // -------------------------------------------------------------------------
+
+    /**
+     * Valida usuario y contraseña contra GLPI usando Authorization Basic.
+     * Devuelve datos del usuario autenticado. Nunca expone el session_token de GLPI.
+     */
+    public function loginWithCredentials(string $username, string $password): array
+    {
+        $response = Http::withHeaders([
+            'App-Token'    => $this->appToken,
+            'Authorization' => 'Basic ' . base64_encode("{$username}:{$password}"),
+            'Content-Type' => 'application/json',
+        ])
+            ->timeout($this->timeout)
+            ->withOptions(['verify' => $this->sslVerify])
+            ->get("{$this->url}/initSession");
+
+        if ($response->failed()) {
+            throw new RuntimeException('Credenciales inválidas.');
+        }
+
+        $sessionToken = $response->json('session_token');
+
+        if (empty($sessionToken)) {
+            throw new RuntimeException('No se obtuvo session_token de GLPI.');
+        }
+
+        $name = $username;
+
+        try {
+            $fullSession = Http::withHeaders([
+                'App-Token'    => $this->appToken,
+                'Session-Token' => $sessionToken,
+                'Content-Type' => 'application/json',
+            ])
+                ->timeout($this->timeout)
+                ->withOptions(['verify' => $this->sslVerify])
+                ->get("{$this->url}/getFullSession");
+
+            if ($fullSession->successful()) {
+                $name = $fullSession->json('session.glpifriendlyname') ?? $username;
+            }
+        } catch (\Throwable) {
+            // Silencioso; se usa el login como nombre
+        } finally {
+            $this->killSession($sessionToken);
+        }
+
+        return [
+            'glpi_login' => $username,
+            'name'       => $name,
+        ];
+    }
+
+    // -------------------------------------------------------------------------
+    // Respuesta masiva (ITILFollowup)
+    // -------------------------------------------------------------------------
+
+    public function bulkAddFollowup(array $ticketIds, string $content): array
+    {
+        $sessionToken = $this->initSession();
+
+        try {
+            $input = array_values(array_map(fn ($id) => [
+                'itemtype'   => 'Ticket',
+                'items_id'   => (int) $id,
+                'content'    => $content,
+                'is_private' => 0,
+            ], $ticketIds));
+
+            // GLPI: un elemento → 201 + {id}, varios → 207 + [{id, message}]
+            $payload  = ['input' => count($input) === 1 ? $input[0] : $input];
+
+            $response = Http::withHeaders($this->headersWithSession($sessionToken))
+                ->timeout($this->timeout)
+                ->withOptions(['verify' => $this->sslVerify])
+                ->post("{$this->url}/ITILFollowup/", $payload);
+
+            if ($response->status() >= 400) {
+                throw new RuntimeException(
+                    "Error enviando seguimiento: {$response->status()} - " .
+                    $this->sanitizeError($response->body())
+                );
+            }
+
+            $body = $response->json();
+
+            // Respuesta single → {id: X}
+            if (isset($body['id'])) {
+                return [[
+                    'ticket_id' => $ticketIds[0],
+                    'ok'        => !empty($body['id']) && $body['id'] !== false,
+                    'message'   => '',
+                ]];
+            }
+
+            // Respuesta bulk → [{id: X, message: ""}, ...]
+            return array_map(function ($item, $idx) use ($ticketIds) {
+                return [
+                    'ticket_id' => $ticketIds[$idx] ?? null,
+                    'ok'        => !empty($item['id']) && $item['id'] !== false,
+                    'message'   => $item['message'] ?? '',
+                ];
+            }, $body, array_keys($body));
+
+        } finally {
+            $this->killSession($sessionToken);
+        }
     }
 
     // -------------------------------------------------------------------------

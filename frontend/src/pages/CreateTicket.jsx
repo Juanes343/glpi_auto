@@ -8,7 +8,7 @@ import {
 import Alert from '../components/Alert';
 import Card from '../components/Card';
 import Loading from '../components/Loading';
-import SelectField from '../components/SelectField';
+import SearchableSelect from '../components/SearchableSelect';
 import TextField from '../components/TextField';
 
 const EMPTY_FORM = {
@@ -74,10 +74,17 @@ export default function CreateTicket() {
     setAlert({ type: '', message: '' });
     setSubmitting(true);
 
+    const requesterId = parseInt(form.requester_id, 10);
+    if (!form.requester_id || isNaN(requesterId) || requesterId <= 0) {
+      setAlert({ type: 'error', message: 'Selecciona un solicitante válido de la lista.' });
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const result = await createTicket({
         entity_id:    Number(form.entity_id),
-        requester_id: Number(form.requester_id),
+        requester_id: requesterId,
         type:         Number(form.type),
         category_id:  form.category_id ? Number(form.category_id) : null,
         title:        form.title,
@@ -110,19 +117,19 @@ export default function CreateTicket() {
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <SelectField
+          <SearchableSelect
             label="Entidad"
             name="entity_id"
             value={form.entity_id}
             onChange={handleChange}
             options={entities}
-            placeholder="Seleccione una entidad"
+            placeholder="Escribe para buscar entidad..."
             required
           />
 
           {loadingReq && <Loading text="Cargando solicitantes..." />}
 
-          <SelectField
+          <SearchableSelect
             label="Solicitante"
             name="requester_id"
             value={form.requester_id}
@@ -133,7 +140,7 @@ export default function CreateTicket() {
             }))}
             placeholder={
               form.entity_id
-                ? 'Seleccione un solicitante'
+                ? 'Escribe para buscar solicitante...'
                 : 'Primero seleccione una entidad'
             }
             disabled={!form.entity_id || loadingReq}
@@ -141,7 +148,7 @@ export default function CreateTicket() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <SelectField
+            <SearchableSelect
               label="Tipo"
               name="type"
               value={form.type}
@@ -150,16 +157,17 @@ export default function CreateTicket() {
                 { id: '1', name: 'Incidencia' },
                 { id: '2', name: 'Solicitud' },
               ]}
+              placeholder="Seleccione tipo..."
               required
             />
 
-            <SelectField
+            <SearchableSelect
               label="Categoría"
               name="category_id"
               value={form.category_id}
               onChange={handleChange}
               options={categories}
-              placeholder="Sin categoría"
+              placeholder="Sin categoría (opcional)"
             />
           </div>
 

@@ -21,7 +21,8 @@ Route::prefix('glpi')
         Route::get('entities',           [EntityController::class,    'index']);
         Route::get('categories',         [CategoryController::class,  'index']);
         Route::get('requesters',         [RequesterController::class, 'byEntity']);
-        Route::post('tickets',           [TicketController::class,    'store']);
-        Route::get('tickets/new',        [TicketController::class,    'newTickets']);
-        Route::get('tickets/new/export', [TicketController::class,    'exportNewTickets']);
+        Route::post('tickets',              [TicketController::class,    'store']);
+        Route::post('tickets/bulk-reply',  [TicketController::class,    'bulkReply']);
+        Route::get('tickets/new',          [TicketController::class,    'newTickets']);
+        Route::get('tickets/new/export',   [TicketController::class,    'exportNewTickets']);
     });

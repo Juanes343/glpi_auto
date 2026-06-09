@@ -74,10 +74,17 @@ export default function CreateTicket() {
     setAlert({ type: '', message: '' });
     setSubmitting(true);
 
+    const requesterId = parseInt(form.requester_id, 10);
+    if (!form.requester_id || isNaN(requesterId) || requesterId <= 0) {
+      setAlert({ type: 'error', message: 'Selecciona un solicitante válido de la lista.' });
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const result = await createTicket({
         entity_id:    Number(form.entity_id),
-        requester_id: Number(form.requester_id),
+        requester_id: requesterId,
         type:         Number(form.type),
         category_id:  form.category_id ? Number(form.category_id) : null,
         title:        form.title,

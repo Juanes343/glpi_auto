@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Glpi\StoreTicketRequest;
 use App\Services\Glpi\GlpiService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class TicketController extends Controller
@@ -39,6 +40,35 @@ class TicketController extends Controller
             return response()->json([
                 'ok'   => true,
                 'data' => $result,
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'ok'    => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // POST /api/glpi/tickets/bulk-reply
+    public function bulkReply(Request $request, GlpiService $glpi): JsonResponse
+    {
+        $data = $request->validate([
+            'ticket_ids'   => ['required', 'array', 'min:1'],
+            'ticket_ids.*' => ['required', 'integer', 'min:1'],
+            'content'      => ['required', 'string', 'max:10000'],
+        ]);
+
+        try {
+            $results = $glpi->bulkAddFollowup($data['ticket_ids'], $data['content']);
+            $success = collect($results)->where('ok', true)->count();
+            $total   = count($results);
+            $failed  = $total - $success;
+
+            return response()->json([
+                'ok'      => $failed === 0,
+                'message' => "Se procesaron {$success} de {$total} caso" . ($total !== 1 ? 's' : '') . ' correctamente.',
+                'results' => $results,
             ]);
 
         } catch (\Throwable $e) {

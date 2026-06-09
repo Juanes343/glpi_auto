@@ -22,8 +22,10 @@ class GlpiMapper
 
     public static function requester(array $user): array
     {
-        $id    = $user['1'] ?? $user['id'] ?? null;
-        $login = $user['2'] ?? '';
+        // En este GLPI: campo '1' = login (string), campo '2' = ID numérico
+        $login = $user['1'] ?? '';
+        $rawId = $user['2'] ?? $user['id'] ?? null;
+        $id    = is_numeric($rawId) ? (int) $rawId : null;
         $name  = $user['34'] ?? $user['9'] ?? $login ?? "Usuario {$id}";
         $email = $user['5'] ?? '';
 

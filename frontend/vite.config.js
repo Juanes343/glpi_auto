@@ -10,6 +10,7 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
+  base: '/glpi_auto/frontend/build/',
   build: {
     outDir: 'build',
     assetsDir: 'assets',
